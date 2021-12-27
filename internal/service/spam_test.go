@@ -3,28 +3,67 @@ package service
 import (
 	"github.com/stretchr/testify/assert"
 	"log"
-	"strings"
 	"testing"
 )
 
 var spamService = Spam{}
 
 func TestSpam_isSpam(t *testing.T) {
-	//type args struct {
-	//	contents         string
-	//	spamLinkDomains  []string
-	//	redirectionDepth int
-	//}
+	type args struct {
+		contents         string
+		spamLinkDomains  []string
+		redirectionDepth int
+	}
 	//assert.Equal(t, false, true, "It should not be equal")
-	log.Println(strings.Fields("test result expect"))
+	//spam, err := spamService.IsSpam("has url http://bit.ly/2yTkW52", []string{"bit.ly", "www.google.com"}, 1)
+	spam, err := spamService.IsSpam("has url http://www.bit.ly/2yTkW52", []string{"bit.ly", "www.google.com"}, 2)
+	if err != nil {
+		t.Error(err)
+	}
+	log.Println(spam)
+	tests := []struct {
+		name   string
+		args   args
+		wantOk bool
+	}{
+		{
+			name: "success http://www.bit.ly/2yTkW52",
+			args: args{
+				contents:         "has url http://www.bit.ly/2yTkW52",
+				spamLinkDomains:  []string{"bit.ly", "www.google.com"},
+				redirectionDepth: 2,
+			},
+			wantOk: true,
+		},
+		{
+			name: "fail http://www.bit.ly/2yTkW52 cause depth",
+			args: args{
+				contents:         "has url http://www.bit.ly/2yTkW52",
+				spamLinkDomains:  []string{"bit.ly", "www.google.com"},
+				redirectionDepth: 1,
+			},
+			wantOk: false,
+		},
+		{
+			name: "success http://bit.ly/2yTkW52",
+			args: args{
+				contents:         "has url http://bit.ly/2yTkW52",
+				spamLinkDomains:  []string{"bit.ly", "www.google.com"},
+				redirectionDepth: 1,
+			},
+			wantOk: true,
+		},
+	}
 
-	//testCases := []args{
-	//	{
-	//		contents:         fmt.Sprintf("spam spam https://goo.gl/nVLutc"),
-	//		spamLinkDomains:  []string{"http://www.filekok.com/main"},
-	//		redirectionDepth: 1,
-	//	},
-	//}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			isSpam, err := spamService.IsSpam(tt.args.contents, tt.args.spamLinkDomains, tt.args.redirectionDepth)
+			if err != nil {
+				t.Error(err)
+			}
+			assert.Equal(t, tt.wantOk, isSpam, "should be equal")
+		})
+	}
 }
 
 func Test_hasURL(t *testing.T) {

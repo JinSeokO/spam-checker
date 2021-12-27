@@ -1,39 +1,79 @@
 package service
 
 import (
+	"errors"
+	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"strings"
 )
 
+var (
+	RedirectionDepthLowerThanOneError = "redirectionDepth is should be over 0"
+)
+
 type Spam struct {
 }
 
 func (s Spam) IsSpam(contents string, spamLinkDomains []string, redirectionDepth int) (bool, error) {
+	if redirectionDepth < 1 {
+		return false, errors.New(RedirectionDepthLowerThanOneError)
+	}
+
+	isSpamRedirectionDomain := false
+	lastPageRedirectionDepth := 0
 	link, ok := s.hasURL(contents)
+
 	if ok != true {
 		return false, nil
 	}
 
 	req, err := http.NewRequest("GET", link, nil)
 	if err != nil {
-		panic(err)
+		return false, err
 	}
 
 	client := new(http.Client)
 
 	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-		log.Println(req)
+		lastPageRedirectionDepth = len(via)
+		if lastPageRedirectionDepth >= redirectionDepth {
+			redirectionDomain := via[redirectionDepth-1].URL.Host
+			for _, spamLinkDomain := range spamLinkDomains {
+				if spamLinkDomain == redirectionDomain {
+					isSpamRedirectionDomain = true
+					return nil
+				}
+			}
+		}
 		return nil
 	}
 
-	response, err := client.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return false, err
 	}
 
-	log.Println(response)
+	lastPageRedirectionDepth += 1
+
+	if isSpamRedirectionDomain {
+		return true, nil
+	}
+
+	if lastPageRedirectionDepth == redirectionDepth {
+		bodyBytes, err := io.ReadAll(resp.Body)
+		if err != nil {
+			log.Fatal(err)
+		}
+		bodyString := string(bodyBytes)
+		for _, spamLinkDomain := range spamLinkDomains {
+			if strings.Contains(bodyString, fmt.Sprintf("<a href=\"%s\"></a>", spamLinkDomain)) {
+				return true, nil
+			}
+		}
+	}
 
 	return false, nil
 }
