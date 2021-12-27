@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-//var spamService = Spam{}
+var spamService = Spam{}
 
 func TestSpam_isSpam(t *testing.T) {
 	//type args struct {
@@ -17,6 +17,7 @@ func TestSpam_isSpam(t *testing.T) {
 	//}
 	//assert.Equal(t, false, true, "It should not be equal")
 	log.Println(strings.Fields("test result expect"))
+
 	//testCases := []args{
 	//	{
 	//		contents:         fmt.Sprintf("spam spam https://goo.gl/nVLutc"),
@@ -58,7 +59,7 @@ func Test_hasURL(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotUrl, gotOk := hasURL(tt.args.contents)
+			gotUrl, gotOk := spamService.hasURL(tt.args.contents)
 			assert.Equal(t, tt.wantOk, gotOk)
 			assert.Equal(t, tt.wantUrl, gotUrl)
 		})

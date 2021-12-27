@@ -2,6 +2,7 @@ package service
 
 import (
 	"log"
+	"net/http"
 	"net/url"
 	"strings"
 )
@@ -10,21 +11,38 @@ type Spam struct {
 }
 
 func (s Spam) IsSpam(contents string, spamLinkDomains []string, redirectionDepth int) (bool, error) {
-	link, ok := hasURL(contents)
+	link, ok := s.hasURL(contents)
 	if ok != true {
 		return false, nil
 	}
 
-	log.Println(link)
+	req, err := http.NewRequest("GET", link, nil)
+	if err != nil {
+		panic(err)
+	}
+
+	client := new(http.Client)
+
+	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		log.Println(req)
+		return nil
+	}
+
+	response, err := client.Do(req)
+	if err != nil {
+		return false, err
+	}
+
+	log.Println(response)
 
 	return false, nil
 }
 
-func hasURL(contents string) (url string, ok bool) {
+func (s Spam) hasURL(contents string) (url string, ok bool) {
 	fields := strings.Fields(contents)
 
 	for _, field := range fields {
-		if isURL(field) {
+		if s.isURL(field) {
 			return field, true
 		}
 	}
@@ -32,7 +50,7 @@ func hasURL(contents string) (url string, ok bool) {
 	return "", false
 }
 
-func isURL(urlSample string) bool {
+func (s Spam) isURL(urlSample string) bool {
 	_, err := url.ParseRequestURI(urlSample)
 	if err != nil {
 		return false
